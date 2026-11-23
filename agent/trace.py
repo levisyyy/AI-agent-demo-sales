@@ -4,7 +4,8 @@ import json
 import os
 from datetime import datetime
 
-LOG_PATH = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "trace.jsonl")
+LOG_PATH = os.getenv("TRACE_PATH") or os.path.join(
+    os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "trace.jsonl")
 
 
 def log(record: dict) -> dict:

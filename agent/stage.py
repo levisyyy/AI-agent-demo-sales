@@ -14,9 +14,13 @@ STAGES = {
 FREEDOM_CAP = {"high": "high", "mid": "mid", "low": "low", "min": "low", "none": "low"}
 
 
-def advance(stage: str, attended: list, paid_deposit: bool) -> str:
-    """根据实际行为推进 Stage —— 不是靠对话说的，是靠行为事实"""
-    if stage == "D5" and paid_deposit and len(attended) >= 4:
+def advance(stage: str, attended: list, paid_final: bool) -> str:
+    """根据实际行为推进 Stage —— 不是靠对话说的，是靠行为事实
+
+    D5 的 win 是"尾款支付成功"，所以归档看 paid_final。
+    只看订金会把"还在问尾款什么时候交"的学员误判成已完成。
+    """
+    if stage == "D5" and paid_final and len(attended) >= 4:
         return "DONE"
     return stage
 

@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""命令行演示：一条命令跑完 8 个场景，直接看决策过程。
+"""命令行演示：一条命令跑完 11 个场景，直接看决策过程。
 
 用法：
   python3 cli.py          # 跑全部演示
@@ -57,6 +57,16 @@ def show(ev: Event, llm: LLM):
         print(f"【{'AI 草稿' if r.mode == 'CONFIRM' else '发送内容'}】{r.draft}")
     if not r.ok:
         print(f"【拦截原因】{r.blocked}")
+
+    # 第7层真的把状态写回了，这里把它显式打出来，否则"Stage 在推进"看不见
+    after = get_student(ev.student_id)
+    moved = []
+    if after.stage != stu.stage:
+        moved.append(f"阶段 {stu.stage} → {after.stage}")
+    if after.touch_count != stu.touch_count:
+        moved.append(f"触达 {stu.touch_count} → {after.touch_count}")
+    if moved:
+        print("【状态回写】" + "　｜　".join(moved))
     print()
 
 
@@ -67,7 +77,9 @@ CASES = [
     Event("message", "S003", "你们这个老师是哪个学校的"),
     Event("message", "S004", "我想再和我家里人商量一下"),
     Event("message", "S004", "这个多少钱"),
+    Event("message", "S004", "进阶班怎么报名"),
     Event("message", "S005", "太贵了，我要退费"),
+    Event("message", "S005", "尾款什么时候交"),
     Event("message", "S007", "嗯嗯好的"),
     Event("timer", "S004", trigger="class_reminder"),
 ]

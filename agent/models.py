@@ -30,6 +30,7 @@ class Student:
     tags: list = field(default_factory=list)
     concerns: list = field(default_factory=list)
     paid_deposit: bool = False
+    paid_final: bool = False      # 尾款是否结清——只有它能让 D5 归档，订金不算
 
 
 @dataclass

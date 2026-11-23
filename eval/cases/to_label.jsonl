@@ -1,0 +1,8 @@
+{"id": "E001", "student_id": "S001", "kind": "message", "text": "今晚几点开始", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D1", "note": ""}
+{"id": "E002", "student_id": "S002", "kind": "message", "text": "今天加班去不了了", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D2", "note": ""}
+{"id": "E003", "student_id": "S002", "kind": "message", "text": "这个价格有点贵啊", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D2", "note": ""}
+{"id": "E004", "student_id": "S003", "kind": "message", "text": "老师是哪毕业的", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D3", "note": ""}
+{"id": "E005", "student_id": "S004", "kind": "message", "text": "进阶班怎么报名", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D4", "note": ""}
+{"id": "E006", "student_id": "S005", "kind": "message", "text": "尾款什么时候交", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D5", "note": ""}
+{"id": "E007", "student_id": "S007", "kind": "message", "text": "嗯嗯好的", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D2", "note": ""}
+{"id": "E008", "student_id": "S008", "kind": "message", "text": "这个能分期吗", "trigger": "", "gold_intent": "", "gold_mode": "", "_stage": "D3", "note": ""}

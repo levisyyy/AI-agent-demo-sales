@@ -11,7 +11,7 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from agent import Event, LLM, run, get_student      # noqa: E402
+from agent import Event, LLM, run, get_student, store   # noqa: E402
 from agent import trace as trace_mod                # noqa: E402
 from agent.models import load                       # noqa: E402
 
@@ -93,7 +93,9 @@ with tab_work:
                 Event("message", "S003", "你们这个老师是哪个学校的"),
                 Event("message", "S004", "我想再和我家里人商量一下"),
                 Event("message", "S004", "这个多少钱"),
+                Event("message", "S004", "进阶班怎么报名"),
                 Event("message", "S005", "太贵了，我要退费"),
+                Event("message", "S005", "尾款什么时候交"),
                 Event("message", "S007", "嗯嗯好的"),
             ]
             for ev in demo_cases:
@@ -132,9 +134,10 @@ with tab_work:
         if c2.button("定时：到课提醒", width='stretch'):
             handle(Event("timer", sid, trigger="class_reminder"))
             st.rerun()
-        if c3.button("清空本会话", width='stretch'):
+        if c3.button("重置本会话", width='stretch'):
             st.session_state.chat[sid] = []
             st.session_state.last.pop(sid, None)
+            store.reset(sid)          # 连学员状态一起回到初始快照
             st.rerun()
 
     with right:

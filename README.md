@@ -8,9 +8,9 @@
 ## 一、怎么跑（30 秒）
 
 ```bash
-cd tutor_agent_demo
+cd "运营督学agent demo"
 
-# 方式一：命令行，一条命令跑完 9 个场景，直接看决策过程（零依赖）
+# 方式一：命令行，一条命令跑完 11 个场景，直接看决策过程（零依赖）
 python3 cli.py
 
 # 方式二：三栏工作台 UI
@@ -19,6 +19,9 @@ streamlit run app.py
 
 # 方式三：交互式，自己输入学员说的话
 python3 cli.py -i
+
+# 方式四：离线评估，30 条金标样本出一份指标报告
+python3 eval/run_eval.py
 ```
 
 **不需要 API Key 也能跑。** 未配置时自动进入 MOCK 模式：意图用关键词规则、话术用模板填充。
@@ -69,10 +72,11 @@ python3 cli.py
 
 ```
 tutor_agent_demo/
-├── cli.py                  命令行演示（9 个预设场景 + 交互模式）
+├── cli.py                  命令行演示（11 个预设场景 + 交互模式）
 ├── app.py                  Streamlit 三栏工作台 + 评估看板
 ├── agent/
 │   ├── models.py           数据结构 + LLM 客户端（零依赖，urllib）
+│   ├── store.py            学员状态持有者（进程内，Stage/触达计数真正可推进）
 │   ├── stage.py            Stage 状态机
 │   ├── gate.py             ① 闸门
 │   ├── router.py           ③ 意图识别
@@ -81,6 +85,13 @@ tutor_agent_demo/
 │   ├── guard.py            ⑥ 风控闸门
 │   ├── trace.py            ⑦ 留痕
 │   └── pipeline.py         主流程，七层串成一条线
+├── eval/                   离线评估（指标 + 按层归因）
+│   ├── run_eval.py         回放入口
+│   ├── metrics.py          动作/意图准确率、误拦率、漏放率、保守率
+│   ├── attribute.py        把每条错判钉到具体某一层
+│   ├── dataset.py          金标集加载与校验
+│   ├── make_template.py    从原始消息生成待标注骨架
+│   └── cases/gold.jsonl    30 条人工标注样本
 └── data/
     ├── students.json       8 个假学员（已脱敏）
     ├── cards.json          话术卡片库（Stage|意图|情绪 → 骨架）
@@ -127,7 +138,9 @@ tutor_agent_demo/
 1. 用你们**真实的 100 条对话**替换 `students.json` 和预设场景，看哪些场景没有卡片（这是需求清单）
 2. 补 `cards.json` 到 20–30 张，覆盖 D1–D5 主要分支
 3. 配置 API Key，跑一轮看模型生成和模板的差距
-4. 加一个「离线回放」脚本：批量跑历史对话，人工标注好/坏，算通过率 → 这就是你的评估报告
+4. ~~加一个「离线回放」脚本~~ **已完成**：`eval/` 目录，30 条金标样本 + 五类指标 + 按层归因。
+   跑 `python3 eval/run_eval.py` 会输出「哪一层错了、错几条」。下一步把样本扩到 200 条，
+   **否则所有调优都只是感觉好一点**。
 5. 接上真实工具层（`executor.py` 的 TOOLS）和真实通道（新建 `channels/`）
 
 ---

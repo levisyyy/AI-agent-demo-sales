@@ -35,8 +35,9 @@ def run(event: Event, llm: LLM = None, now=None) -> Result:
     t.update({"mode": plan.mode, "card": plan.card_id, "freedom": plan.freedom, "reason": plan.reason})
 
     if plan.mode in ("HUMAN", "STOP"):
+        # blocked 也要落盘，否则评估看板的"被拦截次数"漏掉策略层转人工
         return Result(False, plan.mode, intent=intent, plan=plan,
-                      blocked=plan.reason, trace=trace_mod.log(t))
+                      blocked=plan.reason, trace=trace_mod.log({**t, "blocked": plan.reason}))
 
     # ── 第5层 执行 ──
     draft, found = execute(plan, student, intent, llm)
@@ -65,7 +66,7 @@ def run(event: Event, llm: LLM = None, now=None) -> Result:
     tools = run_tools(plan, student)
     t["tools"] = [x["result"] for x in tools]
 
-    next_stage = advance(student.stage, student.attended, student.paid_deposit)
+    next_stage = advance(student.stage, student.attended, student.paid_final)
     changes = {}
     if next_stage != student.stage:
         changes["stage"] = next_stage
