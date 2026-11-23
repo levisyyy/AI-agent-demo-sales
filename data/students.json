@@ -1,0 +1,50 @@
+{
+  "S001": {
+    "id": "S001", "name": "李婷", "phone": "138****2210", "channel": "抖音信息流",
+    "course": "零基础插画5天体验课", "stage": "D1", "enrolled_days": 0,
+    "attended": [], "touch_count": 0, "last_reply_hours": null,
+    "tags": ["新加微"], "concerns": [], "paid_deposit": false
+  },
+  "S002": {
+    "id": "S002", "name": "王浩", "phone": "150****3382", "channel": "朋友圈广告",
+    "course": "零基础插画5天体验课", "stage": "D2", "enrolled_days": 1,
+    "attended": ["D1"], "touch_count": 2, "last_reply_hours": 4,
+    "tags": ["D1全勤"], "concerns": ["说下班晚怕跟不上"], "paid_deposit": false
+  },
+  "S003": {
+    "id": "S003", "name": "张敏", "phone": "186****9017", "channel": "小红书",
+    "course": "零基础插画5天体验课", "stage": "D3", "enrolled_days": 2,
+    "attended": ["D1", "D2"], "touch_count": 3, "last_reply_hours": 26,
+    "tags": ["高意向", "已夸老师"], "concerns": ["价格"], "paid_deposit": false
+  },
+  "S004": {
+    "id": "S004", "name": "陈晨", "phone": "139****4471", "channel": "抖音信息流",
+    "course": "零基础插画5天体验课", "stage": "D4", "enrolled_days": 3,
+    "attended": ["D1", "D2", "D3"], "touch_count": 2, "last_reply_hours": 2,
+    "tags": ["全勤", "已进转化池"], "concerns": ["想和家人商量"], "paid_deposit": false
+  },
+  "S005": {
+    "id": "S005", "name": "刘洋", "phone": "137****6623", "channel": "朋友圈广告",
+    "course": "零基础插画5天体验课", "stage": "D5", "enrolled_days": 4,
+    "attended": ["D1", "D2", "D3", "D4"], "touch_count": 1, "last_reply_hours": 5,
+    "tags": ["已付订金"], "concerns": ["觉得贵", "要退"], "paid_deposit": true
+  },
+  "S006": {
+    "id": "S006", "name": "赵雪", "phone": "135****8890", "channel": "视频号",
+    "course": "零基础插画5天体验课", "stage": "D1", "enrolled_days": 0,
+    "attended": [], "touch_count": 1, "last_reply_hours": 12,
+    "tags": ["未确认开课"], "concerns": [], "paid_deposit": false
+  },
+  "S007": {
+    "id": "S007", "name": "孙磊", "phone": "188****1034", "channel": "抖音信息流",
+    "course": "零基础插画5天体验课", "stage": "D2", "enrolled_days": 1,
+    "attended": [], "touch_count": 3, "last_reply_hours": 40,
+    "tags": ["D1缺勤"], "concerns": ["说没时间"], "paid_deposit": false
+  },
+  "S008": {
+    "id": "S008", "name": "周佳", "phone": "156****7756", "channel": "小红书",
+    "course": "零基础插画5天体验课", "stage": "D3", "enrolled_days": 2,
+    "attended": ["D1", "D2"], "touch_count": 1, "last_reply_hours": 3,
+    "tags": ["高意向"], "concerns": ["对比过别家"], "paid_deposit": false
+  }
+}
