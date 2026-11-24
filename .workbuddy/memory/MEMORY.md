@@ -26,3 +26,8 @@
 ## 环境
 Python 3.13。已装 streamlit 1.67.0 / pandas 3.1.1（2026-11-24）。
 启动：`python cli.py` / `streamlit run app.py`。演示时刻固定 `DEMO_NOW = 19:30`，否则被静默时段规则全拦。
+
+## 面试素材
+- `docs/dify-vs-code.md`：Dify/LangChain 对比、半天实验计划、30 秒面试回答与追问预案。
+- `eval/`：评估框架，`python eval/run_eval.py` 出报告（动作/意图准确率 + 按层归因）。
+- 面试核心叙事：「受约束 Agent——模型只管理解与生成，策略与度量全在代码里」。

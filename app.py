@@ -3,6 +3,7 @@
 
 运行：streamlit run app.py
 """
+import json
 import os
 import sys
 from datetime import datetime
@@ -11,9 +12,8 @@ import pandas as pd
 import streamlit as st
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from agent import Event, LLM, run, get_student, store   # noqa: E402
+from agent import Event, LLM, run, get_student, store, db   # noqa: E402
 from agent import trace as trace_mod                # noqa: E402
-from agent.models import load                       # noqa: E402
 
 st.set_page_config(page_title="AI 督学 Agent", page_icon="🎯", layout="wide")
 
@@ -69,7 +69,7 @@ st.caption(
     f"　｜　演示时刻固定为 {DEMO_NOW:%m-%d %H:%M}"
 )
 
-tab_work, tab_eval = st.tabs(["工作台", "评估看板"])
+tab_work, tab_eval, tab_data = st.tabs(["工作台", "评估看板", "数据管理"])
 
 # ==================== 工作台 ====================
 with tab_work:
@@ -86,6 +86,8 @@ with tab_work:
                 st.rerun()
         st.divider()
         if st.button("▶ 一键跑全部演示场景", width='stretch', type="primary"):
+            db.reseed_students()   # 回到初始学员数据，保证每次演示可重复
+            store.reset()
             demo_cases = [
                 Event("timer", "S001", trigger="class_reminder"),
                 Event("message", "S002", "今天加班去不了了"),
@@ -134,10 +136,11 @@ with tab_work:
         if c2.button("定时：到课提醒", width='stretch'):
             handle(Event("timer", sid, trigger="class_reminder"))
             st.rerun()
-        if c3.button("重置本会话", width='stretch'):
+        if c3.button("重置学员数据", width='stretch'):
             st.session_state.chat[sid] = []
             st.session_state.last.pop(sid, None)
-            store.reset(sid)          # 连学员状态一起回到初始快照
+            db.reseed_students()      # 从 students.json 回灌，触达数与 Stage 回到初始
+            store.reset()
             st.rerun()
 
     with right:
@@ -197,8 +200,149 @@ with tab_eval:
 
     st.divider()
     st.markdown("**话术卡片库**")
-    cards = load("cards.json")
+    cards = db.load_cards()
     crow = [{"卡片ID": c.get("card_id", ""), "组合": k, "自由度": c.get("freedom", ""),
              "目标": c.get("goal", ""), "骨架": c.get("skeleton", "")}
             for k, c in cards.items() if isinstance(c, dict)]
     st.dataframe(pd.DataFrame(crow), width='stretch', height=320)
+
+# ==================== 数据管理 ====================
+LIST_FIELDS = {"attended": "已上课程", "tags": "标签", "concerns": "顾虑"}
+
+
+def _join(v):
+    return ", ".join(v) if isinstance(v, list) else ("" if v is None else v)
+
+
+def _split(v):
+    return [x.strip() for x in str(v).split(",") if x.strip()]
+
+
+def _num(v, default=None):
+    try:
+        return default if v is None or pd.isna(v) else float(v)
+    except (TypeError, ValueError):
+        return default
+
+
+with tab_data:
+    st.markdown(
+        "数据存在 `data/agent.db`（SQLite，单文件）。**改完点保存立即生效**，"
+        "不用重启；`data/*.json` 只在首次建库时导入一次，之后以这里为准。"
+        "注意：工作台的「一键演示」和「重置学员数据」会把学员恢复成 `students.json` 初始值。"
+    )
+
+    st.subheader("对话日志（trace_log，每次决策一行）")
+    st.caption("怎么调的、怎么判的都在这里：意图与置信度、命中的策略与卡片、风控结论，"
+               "以及每次模型调用的完整 prompt 与回复（llm_calls 字段）。分析 SQL 见 `docs/log-analysis.md`。")
+    logs = db.tail_trace(100)
+    if not logs:
+        st.info("还没有日志，去工作台发一条消息。")
+    else:
+        log_df = pd.DataFrame(logs)
+        show = [c for c in ["id", "ts", "source", "student", "stage", "intent", "confidence",
+                            "mode", "card", "freedom", "guard", "blocked"] if c in log_df.columns]
+        st.dataframe(log_df[show], width='stretch', height=300)
+        sel = st.selectbox(
+            "查看某条的完整明细",
+            options=logs,
+            format_func=lambda r: f"#{r['id']} {r['ts']} {r['student']} {r['intent']} → {r['mode']}")
+        st.json(sel)
+        if st.button("清空全部日志", key="clear_trace"):
+            db.clear_trace()
+            st.rerun()
+
+    st.subheader("学员档案")
+    stu_rows = db.load_students()
+    stu_df = pd.DataFrame([
+        {"id": s["id"], "name": s["name"], "phone": s["phone"], "channel": s["channel"],
+         "course": s["course"], "stage": s["stage"],
+         "enrolled_days": s["enrolled_days"], "touch_count": s["touch_count"],
+         "已上课程": _join(s["attended"]), "标签": _join(s["tags"]),
+         "顾虑": _join(s["concerns"]),
+         "付订金": bool(s["paid_deposit"]), "尾款结清": bool(s["paid_final"])}
+        for s in stu_rows])
+    stu_edit = st.data_editor(
+        stu_df, num_rows="dynamic", width='stretch',
+        column_config={
+            "stage": st.column_config.SelectboxColumn("Stage", options=["D1", "D2", "D3", "D4", "D5", "DONE", "LOST"]),
+            "paid_deposit": st.column_config.CheckboxColumn("付订金"),
+            "paid_final": st.column_config.CheckboxColumn("尾款结清"),
+        }, key="stu_editor")
+    if st.button("保存学员", key="save_students"):
+        try:
+            out = []
+            for _, r in stu_edit.iterrows():
+                out.append({
+                    "id": str(r["id"]).strip(), "name": str(r["name"]),
+                    "phone": str(r["phone"]), "channel": str(r["channel"]),
+                    "course": str(r["course"]), "stage": str(r["stage"]),
+                    "enrolled_days": int(_num(r["enrolled_days"], 0) or 0),
+                    "touch_count": int(_num(r["touch_count"], 0) or 0),
+                    "last_reply_hours": _num(r["last_reply_hours"]),
+                    "attended": _split(r["已上课程"]), "tags": _split(r["标签"]),
+                    "concerns": _split(r["顾虑"]),
+                    "paid_deposit": bool(r["付订金"]), "paid_final": bool(r["尾款结清"]),
+                })
+            db.save_students(out)
+            store.reset()
+            st.success(f"已保存 {len(out)} 条学员，工作台下一次运行即生效")
+        except Exception as e:
+            st.error(f"保存失败：{e}")
+
+    st.divider()
+    st.subheader("话术卡片库")
+    card_rows = [{"stage": k.split("|")[0], "intent": k.split("|")[1], "emotion": k.split("|")[2],
+                  "card_id": c["card_id"], "freedom": c["freedom"], "goal": c["goal"],
+                  "skeleton": c["skeleton"], "vars": _join(c["vars"])}
+                 for k, c in db.load_cards().items()]
+    card_df = pd.DataFrame(card_rows)
+    card_edit = st.data_editor(
+        card_df, num_rows="dynamic", width='stretch', height=420,
+        column_config={
+            "stage": st.column_config.SelectboxColumn("Stage", options=["D1", "D2", "D3", "D4", "D5", "ANY"]),
+            "freedom": st.column_config.SelectboxColumn("自由度", options=["low", "mid", "high"]),
+        }, key="card_editor")
+    if st.button("保存卡片", key="save_cards"):
+        try:
+            out = []
+            for _, r in card_edit.iterrows():
+                out.append({
+                    "stage": str(r["stage"]).strip(), "intent": str(r["intent"]).strip(),
+                    "emotion": str(r["emotion"]).strip() or "中性",
+                    "card_id": str(r["card_id"]).strip(),
+                    "freedom": str(r["freedom"]).strip() or "low",
+                    "goal": str(r["goal"]), "skeleton": str(r["skeleton"]),
+                    "vars": _split(r["vars"]),
+                })
+            db.save_cards(out)
+            st.success(f"已保存 {len(out)} 张卡片")
+        except Exception as e:
+            st.error(f"保存失败：{e}")
+
+    st.divider()
+    st.subheader("禁语清单（一行一个词，命中即拦截）")
+    fb = db.load_forbidden()
+    word_df = pd.DataFrame([{"word": w} for w in fb["hard_block"]])
+    word_edit = st.data_editor(word_df, num_rows="dynamic", width='stretch', height=300,
+                               key="word_editor")
+    if st.button("保存禁语", key="save_words"):
+        db.save_forbidden([str(r["word"]) for _, r in word_edit.iterrows()], {})
+        st.success("禁语已保存，下一条消息立即生效")
+
+    st.divider()
+    st.subheader("频控与时段")
+    c1, c2, c3 = st.columns(3)
+    max_touch = c1.number_input("每日主动触达上限", min_value=1, max_value=20,
+                                value=int(fb["max_touch_per_day"]), key="max_touch")
+    quiet_start = c2.number_input("静默开始（时）", min_value=0, max_value=23,
+                                  value=int(fb["quiet_hours"]["start"]), key="quiet_start")
+    quiet_end = c3.number_input("静默结束（时）", min_value=0, max_value=23,
+                                value=int(fb["quiet_hours"]["end"]), key="quiet_end")
+    st.caption(f"金额正则（技术项，改完要自测）：`{json.dumps(fb['price_patterns'], ensure_ascii=False)}`")
+    if st.button("保存频控与时段", key="save_settings"):
+        db.save_forbidden(fb["hard_block"], {
+            "max_touch_per_day": int(max_touch),
+            "quiet_hours": {"start": int(quiet_start), "end": int(quiet_end)},
+        })
+        st.success("已保存")

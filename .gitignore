@@ -1,0 +1,19 @@
+# ---- 密钥与本地配置：绝对不能上传 ----
+.env
+
+# ---- 运行产物 ----
+trace.jsonl
+eval/reports/
+data/.seeded
+
+# ---- 运行数据（含学员数据，不随代码走）----
+data/agent.db
+
+# ---- Python ----
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# ---- Streamlit ----
+.streamlit/secrets.toml

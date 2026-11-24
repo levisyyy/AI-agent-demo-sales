@@ -5,11 +5,9 @@
 注意：路由键是 (Stage, 意图) 的复合键，不是单独意图。
 同一句"有点贵"，D2 和 D5 的处理完全不同。
 """
-from .models import Plan, Intent, Student, load
+from .models import Plan, Intent, Student
 from .stage import allowed_freedom
-
-# 频控阈值只有一处真相：forbidden.json。这里只读，不重复定义数字。
-_F = load("forbidden.json")
+from . import db
 
 # ---- 策略矩阵：实际项目中应配置化（放 JSON / 后台），让运营自助维护 ----
 # mode: AUTO=直接发 / CONFIRM=出草稿人工确认 / HUMAN=强制转人工 / STOP=不动作
@@ -79,7 +77,8 @@ TOOL_NAMES = {"改约", "打标签"}
 def decide(stage: str, intent: Intent, student: Student, is_timer: bool = False) -> Plan:
     # ① 触达频率——只对"主动推送"设限；学员自己发消息来是互动，不是打扰
     #    （gate 已在上游做同样拦截，这里保留一份，防止策略层被单独调用时绕过频控）
-    limit = _F["max_touch_per_day"]
+    #    阈值只有一处真相：DB 的 settings 表
+    limit = db.get_setting("max_touch_per_day", 3)
     if is_timer and student.touch_count >= limit:
         return Plan("STOP", reason=f"今日主动触达已达上限（{limit}次），停止推送")
 

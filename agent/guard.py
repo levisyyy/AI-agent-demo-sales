@@ -2,9 +2,7 @@
 """第6层 风控闸门：所有对外输出必须过这一关。过不去就不发。"""
 import re
 from datetime import datetime
-from .models import load
-
-F = load("forbidden.json")
+from . import db
 
 
 def check(text: str, stage: str, now=None, is_reply: bool = False):
@@ -12,7 +10,10 @@ def check(text: str, stage: str, now=None, is_reply: bool = False):
 
     静默时段的语义是「不许营销推送打扰人」，不是「不许回话」。
     学员主动发消息时，回复照常生成，但降级成人工确认的草稿再发。
+    每次现读配置（DB），工作台里改禁语立即生效。
     """
+    F = db.load_forbidden()
+
     if not text or not text.strip():
         return False, "空消息", False
 

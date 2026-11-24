@@ -86,6 +86,8 @@ CASES = [
 
 
 def demo():
+    from agent import db
+    db.reseed_students()   # 状态回写是真的写库了，演示前回到初始学员数据，保证可重复
     llm = LLM()
     print("=" * 66)
     print(" AI 督学 Agent · 全流程演示")

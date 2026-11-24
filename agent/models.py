@@ -2,11 +2,34 @@
 """数据结构 + 模型客户端（零第三方依赖，mock 模式可直接跑）"""
 import json
 import os
+import time
 import urllib.request
 from dataclasses import dataclass, field, asdict
 from typing import Optional
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "data")
+
+
+def _load_dotenv():
+    """读项目根的 .env（每行 key=value），只补空缺，不覆盖已有环境变量。
+
+    .env 被 .gitignore 排除，密钥只留在本机；保持零依赖，不引 python-dotenv。
+    """
+    path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), ".env")
+    if not os.path.exists(path):
+        return
+    with open(path, encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line or line.startswith("#") or "=" not in line:
+                continue
+            k, _, v = line.partition("=")
+            k, v = k.strip(), v.strip().strip('"').strip("'")
+            if k and v and not os.environ.get(k):
+                os.environ[k] = v
+
+
+_load_dotenv()
 
 
 def load(name):
@@ -79,10 +102,23 @@ class LLM:
         self.base = os.getenv("LLM_BASE_URL", "https://api.deepseek.com/v1").rstrip("/")
         self.model = os.getenv("LLM_MODEL", "deepseek-chat")
         self.last_error = ""
+        self.calls = []   # 每次真实模型调用的明细（prompt/回复/耗时），供留痕与分析
 
     @property
     def available(self):
         return bool(self.key)
+
+    @staticmethod
+    def _clip(s, n: int = 400):
+        s = str(s or "")
+        return s if len(s) <= n else s[:n] + "…(截断)"
+
+    def _record(self, system, user, response, started, ok):
+        self.calls.append({
+            "system": self._clip(system), "user": self._clip(user),
+            "response": self._clip(response),
+            "elapsed_ms": int((time.time() - started) * 1000), "ok": ok,
+        })
 
     def chat(self, system: str, user: str, temperature: float = 0.3,
              json_mode: bool = False) -> Optional[str]:
@@ -90,6 +126,7 @@ class LLM:
         if not self.available:
             return None
         self.last_error = ""
+        started = time.time()
         payload = {
             "model": self.model,
             "messages": [{"role": "system", "content": system},
@@ -105,10 +142,13 @@ class LLM:
         try:
             with urllib.request.urlopen(req, timeout=40) as resp:
                 data = json.loads(resp.read().decode("utf-8"))
-            return data["choices"][0]["message"]["content"]
+            content = data["choices"][0]["message"]["content"]
+            self._record(system, user, content, started, True)
+            return content
         except Exception as e:
             # 静默降级到模板，但把原因留下来，否则接真模型时无从排查
             self.last_error = f"{type(e).__name__}: {e}"
+            self._record(system, user, self.last_error, started, False)
             return None
 
 

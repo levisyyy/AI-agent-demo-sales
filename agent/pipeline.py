@@ -18,7 +18,9 @@ def get_student(sid: str) -> Student:
 def run(event: Event, llm: LLM = None, now=None) -> Result:
     llm = llm or LLM()
     student = get_student(event.student_id)
-    t = {"student": student.name, "stage": student.stage, "event": event.kind}
+    llm.calls.clear()   # 本次决策的模型调用明细；t 持引用，log 时落库的就是最终内容
+    t = {"student_id": student.id, "student": student.name,
+         "stage": student.stage, "event": event.kind, "llm_calls": llm.calls}
 
     # ── 第1层 闸门 ──
     ok, why = gate(event, student)

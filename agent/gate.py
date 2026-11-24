@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """第1层 闸门：不进模型就挡掉的活，省钱也省风险"""
-from .models import Event, Student, load
+from . import db
+from .models import Event, Student
 
-_F = load("forbidden.json")
 HIGH_RISK_WORDS = ["退费", "退款", "投诉", "骗子", "举报", "12315", "律师", "起诉", "曝光"]
 
 
 def gate(event: Event, student: Student):
-    """返回 (是否放行, 拦截原因)"""
+    """返回 (是否放行, 拦截原因)。每次现读配置，工作台里改完立即生效。"""
+    F = db.load_forbidden()
     # 1. 触达上限：打扰学员是流失的第一原因
-    if event.kind == "timer" and student.touch_count >= _F["max_touch_per_day"]:
-        return False, f"触达超限（今日已 {student.touch_count} 次，上限 {_F['max_touch_per_day']}）"
+    if event.kind == "timer" and student.touch_count >= F["max_touch_per_day"]:
+        return False, f"触达超限（今日已 {student.touch_count} 次，上限 {F['max_touch_per_day']}）"
 
     # 2. 学员消息里出现高危词，直接不走模型
     if event.kind == "message":

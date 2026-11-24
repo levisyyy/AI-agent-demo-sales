@@ -25,6 +25,7 @@ sys.path.insert(0, ROOT)
 REPORT_DIR = os.path.join(ROOT, "eval", "reports")
 os.makedirs(REPORT_DIR, exist_ok=True)
 os.environ.setdefault("TRACE_PATH", os.path.join(REPORT_DIR, "eval_trace.jsonl"))
+os.environ.setdefault("TRACE_SOURCE", "eval")   # 入库时打标，分析时与 demo 数据区分
 
 from agent import Event, LLM, run, store                                    # noqa: E402
 from eval.attribute import LAYERS, attribute, distribution                  # noqa: E402
@@ -51,6 +52,9 @@ def clip(s, n):
 
 
 def replay(cases, llm):
+    from agent import db
+    db.reseed_students()   # 金标是按初始学员数据标的，回放前统一重置，保证可重复
+
     with open(os.environ["TRACE_PATH"], "w", encoding="utf-8"):
         pass  # 清空上一次的评估留痕
 
